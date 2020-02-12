@@ -5,6 +5,7 @@ import imp
 import datetime
 import pickle
 import io
+import time
 
 from multiprocessing import Process, Queue
 from queue import Empty
@@ -18,7 +19,8 @@ func_port = os.getenv('FUNC_PORT', 8080)
 
 timeout = float(os.getenv('FUNC_TIMEOUT', 180))
 
-pipe_chunk_size = float(os.getenv('CHUNK_SIZE', 32768))
+pipe_chunk_size = float(os.getenv('FUNC_CHUNK_SIZE', 32768))
+churk_min_wait = float(os.getenv('FUNC_CHUNK_MIN_WAIT', 0.1))
 
 app = application = bottle.app()
 
@@ -90,23 +92,42 @@ def handler():
             q = Queue()
             p = Process(target=funcWrap, args=(q, event, function_context))
             p.start()
-            p.join(timeout)
+
+            acc = b"" # accumulate chunks
+            end_time = time.time() + timeout # forecast timeout time
+            finished = False
+
+            while p.is_alive() or not q.empty():
+                if time.time() > end_time: # timeout
+                    break
+
+                try:
+                    res = q.get(timeout=max(chunk_min_wait, end_time-time.time()))
+                except Empty:
+                    pass
+                else:
+                    if not res:
+                        finished = True
+                        break
+
+                    acc += res
+
             # If thread is still active
             if p.is_alive():
                 p.terminate()
                 p.join()
+
+            if not finished:
                 return bottle.HTTPError(408, "Timeout while processing the function")
             else:
-                acc = b""
-                while not q.empty(): # reassemble return value
-                    acc += q.get()
-
+                p.join()
                 res = pickle.loads(acc)
 
                 if isinstance(res, Exception):
                     raise res
 
                 return res
+
 
 
 if __name__ == '__main__':
