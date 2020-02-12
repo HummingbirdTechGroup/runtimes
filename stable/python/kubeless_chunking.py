@@ -19,8 +19,8 @@ func_port = os.getenv('FUNC_PORT', 8080)
 
 timeout = float(os.getenv('FUNC_TIMEOUT', 180))
 
-pipe_chunk_size = float(os.getenv('FUNC_CHUNK_SIZE', 32768))
-churk_min_wait = float(os.getenv('FUNC_CHUNK_MIN_WAIT', 0.1))
+pipe_chunk_size = int(os.getenv('FUNC_CHUNK_SIZE', 32768))
+chunk_min_wait = float(os.getenv('FUNC_CHUNK_MIN_WAIT', 0.1))
 
 app = application = bottle.app()
 
@@ -43,20 +43,19 @@ function_context = {
 
 def funcWrap(q, event, c):
     try:
-        retval = func(event, c)
+        ret = func(event, c)
     except Exception as inst:
-        retval = inst
+        ret = inst
 
     # chunk up return value to fit inside OS pipe max 64kb
     buff = io.BytesIO(pickle.dumps(ret))
 
     while True: # loop through and read chunks
         chunk = buff.read(pipe_chunk_size)
-        if len(chunk) == 0;
-            break
         q.put(chunk)
+        if not chunk:
+            break
 
-    q.put()
 
 @app.get('/healthz')
 def healthz():
