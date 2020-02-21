@@ -20,7 +20,7 @@ class Controller
 
   public function __construct()
   {
-
+    error_log(var_dump($_REQUEST));
     $this->app = new \Slim\App();
     $this->timeout = (!empty(getenv('FUNC_TIMEOUT')) ? getenv('FUNC_TIMEOUT') : 180);
     $this->root = (!empty(getenv('MOD_ROOT_PATH')) ? getenv('MOD_ROOT_PATH') : '/kubeless/');
@@ -67,10 +67,11 @@ class Controller
           )
         );
         $res = call_user_func_array($this->function, [$event, $this->functionContext]);
-        $event->extensions->response->getBody()->write($res);
+        //$event->extensions->response->getBody()->write($res);
         ob_end_clean();
         chdir($this->currentDir);
-        return $event->extensions->response;
+        //return $event->extensions->response->withHeader('Content-type','application/json');
+        return $res;
       } else {
           sleep($this->timeout);
           posix_kill($pid, SIGKILL);
