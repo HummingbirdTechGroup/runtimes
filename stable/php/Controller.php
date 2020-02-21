@@ -66,7 +66,7 @@ class Controller
             'response' => $response,
           )
         );
-        $res = call_user_func($this->function, $event, $this->functionContext);
+        $res = call_user_func_array($this->function, [$event, $this->functionContext]);
         $event->extensions->response->getBody()->write($res);
         ob_end_clean();
         chdir($this->currentDir);

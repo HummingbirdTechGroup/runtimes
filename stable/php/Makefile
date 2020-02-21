@@ -14,12 +14,18 @@ build73:
 push73:
 	docker push kubeless/php:7.3$$RUNTIME_TAG_MODIFIER
 
+build74:
+	docker build -t eu.gcr.io/hummingbird-technologies/kubeless/php:7.4$$RUNTIME_TAG_MODIFIER -f Dockerfile.7.4 .
+
+push74:
+	docker push eu.gcr.io/hummingbird-technologies/kubeless/php:7.4$$RUNTIME_TAG_MODIFIER
+
 php-cs-fixer:
 	docker run -it --rm -v $${PWD}:/wd -w /wd shouldbee/php-cs-fixer fix Controller.php || true
 
 # Mandatory jobs
-build-all: build72 build73
-push-all: push72 push73
+build-all: build72 build73 build74
+push-all: push72 push73 push74
 
 # Testing jobs
 deploy: get-php get-php-deps post-php timeout-php get-php-73
